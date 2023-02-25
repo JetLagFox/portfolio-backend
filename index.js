@@ -12,6 +12,7 @@ const app = express();
 
 //routes
 const experiencesRoutes = require("./routes/experience");
+const projectsRoutes = require("./routes/project");
 
 //middlewares
 app.use(express.urlencoded({ extended: true}));
@@ -46,6 +47,7 @@ mongoose.connect(
 );
 
 app.use(`/api`, experiencesRoutes);
+app.use(`/api`, projectsRoutes);
 
 app.listen(port, () => {
     console.log(`Server running on port ${port}`)
