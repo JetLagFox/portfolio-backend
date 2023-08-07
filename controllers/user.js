@@ -1,4 +1,5 @@
 const User = require("./../models/user");
+const bcrypt = require("bcrypt");
 
 function getUsers(req, res) {
   User.find({}, function (err, UsersData) {
@@ -63,16 +64,18 @@ function getUserByEmail(req, res) {
   });
 }
 
-function addUser(req, res) {
-  const { name, email, password } = req.body;
+async function addUser(req, res) {
+  const { user, email, password } = req.body;
 
   let newUser = new User();
 
-  newUser.name = name;
+  newUser.name = user;
   newUser.email = email;
-  newUser.password = password;
+  newUser.password = await bcrypt.hash(password, 10);
 
-  if (!name || !email || !password) {
+  console.log(newUser);
+
+  if (!user || !email || !password) {
     res
       .status(404)
       .send({ code: 404, message: "Todos los campos son obigatorios" });
