@@ -13,7 +13,8 @@
     "dotenv": "^16.0.3",
     "express": "^4.18.2",
     "mongodb": "^5.0.0",
-    "mongoose": "^6.9.0"
+    "mongoose": "^6.9.0",
+    "mongoose-paginate-v2": "^1.7.31"
   },
   "devDependencies": {
     "nodemon": "^2.0.20"
