@@ -81,6 +81,39 @@ function getPostsByTitle(req, res) {
     });
 }
 
+function updatePost (req, res) {
+  const id = req.params.id;
+  const { title, excerpt, content, img, slug, published, post_type } = req.body;
+
+  if (!title || !slug || !excerpt || !content || !img || !post_type) {
+    res.status(403).send({ code: 403, message: "Todos los campos son obligatorios" });
+    return;
+  }
+
+  const updatedData = {
+    title,
+    excerpt,
+    content,
+    img,
+    slug,
+    published,
+    post_type
+  };
+
+  Post.findByIdAndUpdate(id, updatedData, { new: true }, (err, PostData) => {
+    if (err) {
+      res.status(500).send({ code: 500, message: err.message });
+    } else if (!PostData) {
+      res.status(404).send({
+        code: 404,
+        message: "Hubo algún problema al actualizar el registro",
+      });
+    } else {
+      res.status(200).send({ code: 200, post: PostData });
+    }
+  });
+}
+
 function getPostBySlug(req, res) {
   const slug = req.params.slug;
 
@@ -147,5 +180,6 @@ module.exports = {
   getPostsByTitle,
   getPostBySlug,
   addPost,
+  updatePost,
   deletePost,
 };

@@ -30,7 +30,7 @@ function getExperiencesPaginated(req, res) {
 
   const params = {
     page: page,
-    limit: 10,
+    limit: 1,
   };
 
   Experience.paginate({}, params)

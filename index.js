@@ -5,7 +5,7 @@ const bodyParser = require("body-parser");
 
 require("dotenv").config();
 
-const port = process.env.BACKEND_PORT;
+const port = process.env.BACKEND_PORT || 8000;
 const uri = process.env.MONGODB_URL;
 
 const app = express();
