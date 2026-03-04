@@ -1,214 +1,179 @@
-const Experience = require("./../models/experience");
+const supabase = require("./../supabase");
 
-function getExperiences(req, res) {
-  Experience.find({}, function (err, experiencesData) {
-    if (err) {
-      res.status(500).send({ code: 500, message: "Error del servidor" });
-    } else if (!experiencesData) {
-      res.status(404).send({
-        code: 404,
-        message: "No se ha encontrado ninguna experiencia",
-      });
-    } else {
-      res.status(200).send({ code: 200, experiences: experiencesData });
-    }
-  });
+async function getExperiences(req, res) {
+  const { data, error } = await supabase.from("experiences").select("*");
+
+  if (error) {
+    res.status(500).send({ code: 500, message: "Error del servidor" });
+  } else if (!data || data.length === 0) {
+    res.status(404).send({ code: 404, message: "No se ha encontrado ninguna experiencia" });
+  } else {
+    res.status(200).send({ code: 200, experiences: data });
+  }
 }
 
-function getExperiencesPaginated(req, res) {
+async function getExperiencesPaginated(req, res) {
   const pageBreadcrumbs = [
-    {
-      href: "/admin",
-      title: "Admin",
-    },
-    {
-      title: "Experiencias",
-    },
+    { href: "/admin", title: "Admin" },
+    { title: "Experiencias" },
   ];
 
-  const page = req.params.page || 1;
+  const page = parseInt(req.params.page) || 1;
+  const limit = 1;
+  const from = (page - 1) * limit;
+  const to = from + limit - 1;
 
-  const params = {
-    page: page,
-    limit: 1,
-  };
+  const { data, error, count } = await supabase
+    .from("experiences")
+    .select("*", { count: "exact" })
+    .range(from, to);
 
-  Experience.paginate({}, params)
-    .then((response) =>
-      res.send({
-        code: response.status,
-        breadcrumbs: pageBreadcrumbs,
-        experiences: response,
-      })
-    )
-    .catch((err) => {
-      res.send({
-        code: 500,
-        message: "Algo salió mal",
-      });
+  if (error) {
+    res.send({ code: 500, message: "Algo salió mal" });
+  } else {
+    res.send({
+      code: 200,
+      breadcrumbs: pageBreadcrumbs,
+      experiences: { docs: data, total: count, page, pages: Math.ceil(count / limit) },
     });
+  }
 }
 
-function getExperienceById(req, res) {
+async function getExperienceById(req, res) {
   const id = req.params.id;
 
-  Experience.findById(id, function (err, ExperienceData) {
-    if (err) {
-      res.status(500).send({ code: 500, message: "Error de servidor", error: err });
-    } else if (!ExperienceData) {
-      res.status(404).send({ code: 404, message: "No se han encontrado datos" });
-    } else {
-      const pageBreadcrumbs = [
-        {
-          href: "/admin",
-          title: "Admin",
-        },
-        {
-          href: "/admin/experiences",
-          title: "Experiencias",
-        },
-        {
-          title: ExperienceData.job,
-        },
-      ];
+  const { data, error } = await supabase.from("experiences").select("*").eq("id", id).single();
 
-      res.status(200).send({
-        code: 200,
-        experience: ExperienceData,
-        breadcrumbs: pageBreadcrumbs,
-      });
-    }
-  });
+  if (error) {
+    res.status(500).send({ code: 500, message: "Error de servidor", error });
+  } else if (!data) {
+    res.status(404).send({ code: 404, message: "No se han encontrado datos" });
+  } else {
+    const pageBreadcrumbs = [
+      { href: "/admin", title: "Admin" },
+      { href: "/admin/experiences", title: "Experiencias" },
+      { title: data.job },
+    ];
 
-  return;
+    res.status(200).send({
+      code: 200,
+      experience: data,
+      breadcrumbs: pageBreadcrumbs,
+    });
+  }
 }
 
-function getExperienceByTitle(req, res) {
+async function getExperienceByTitle(req, res) {
   const search = req.params.title;
-  const page = req.params.page;
+  const page = parseInt(req.params.page) || 1;
+
   const pageBreadcrumbs = [
-    {
-      href: "/admin",
-      title: "Admin",
-    },
-    {
-      title: "Experiencias",
-    },
+    { href: "/admin", title: "Admin" },
+    { title: "Experiencias" },
   ];
 
-  const params = {
-    page: page,
-    limit: 1,
-  };
+  const limit = 1;
+  const from = (page - 1) * limit;
+  const to = from + limit - 1;
 
-  Experience.paginate({ job: { $regex: search, $options: "i" } }, params)
-    .then((response) =>
-      res.send({
-        code: response.status,
-        experiences: response,
-        breadcrumbs: pageBreadcrumbs,
-      })
-    )
-    .catch((err) => {
-      res.send({
-        code: 500,
-        message: "Algo salió mal eeeeeee",
-      });
+  const { data, error, count } = await supabase
+    .from("experiences")
+    .select("*", { count: "exact" })
+    .ilike("job", `%${search}%`)
+    .range(from, to);
+
+  if (error) {
+    res.send({ code: 500, message: "Algo salió mal" });
+  } else {
+    res.send({
+      code: 200,
+      experiences: { docs: data, total: count, page, pages: Math.ceil(count / limit) },
+      breadcrumbs: pageBreadcrumbs,
     });
-
-  // Experience.find({ job: { $regex: search, $options: "i" } }, (err, experiencesData) => {
-  //   if (err) {
-  //     res.status(500).send({ code: 500, message: "Error de servidor" });
-  //   } else if (!experiencesData) {
-  //     res.status(404).send({ code: 404, message: "Ningún registro que mostrar" });
-  //   } else {
-  //     res.status(200).send({ code: 200, experiences: experiencesData });
-  //   }
-  // });
+  }
 }
 
-function postExperience(req, res) {
+async function postExperience(req, res) {
   const { job, city, country, startDate, finishDate, description, company, tags, published } = req.body;
-
-  const experience = new Experience();
-
-  experience.job = job;
-  experience.city = city;
-  experience.country = country;
-  experience.startDate = startDate;
-  experience.finishDate = finishDate;
-  experience.description = description;
-  experience.company = company;
-  experience.tags = tags;
-  experience.published = published;
 
   if (!job || !city || !country || !description || !company || !tags) {
     res.status(403).send({
       code: 403,
       message: "Por favor, introduce todos los valores necesarios",
     });
-  } else {
-    experience.save((err, experienceData) => {
-      if (err) {
-        res.status(500).send({ code: 500, message: "Error del servidor" });
-      } else if (!experienceData) {
-        res.status(404).send({ code: 404, message: "Error al crear experiencia" });
-      } else {
-        res.status(200).send({ code: 200, experience: experienceData });
-      }
-    });
+    return;
   }
-}
 
-function deleteExperience(req, res) {
-  const id = req.params.id;
+  console.log("Received experience data:", req.body);
 
-  Experience.findByIdAndDelete(id, (err, experienceData) => {
-    if (err) {
-      res.status(500).send({ code: 500, message: err.message });
-    } else if (!experienceData) {
-      res.status(404).send({ code: 404, message: "No se encontró el registro" });
-    } else {
-      res.status(200).send({ code: 200, message: "Mensaje borrado" });
-    }
-  });
-}
-
-function updateExperience(req, res) {
-  const id = req.params.id;
-
-  console.log("Esto sería ID: ", id);
-
-  const { job, city, country, startDate, finishDate, description, company, tags, published } = req.body;
-
-  const updatedData = {
+  const newExperience = {
     job,
     city,
-    startDate,
-    finishDate,
+    country,
     description,
     company,
     tags,
     published,
+    startdate: startDate,
+    finishdate: finishDate,
   };
 
-  console.log(updatedData);
+  const { data, error } = await supabase.from("experiences").insert([newExperience]).select().single();
+
+  if (error) {
+    console.error("Supabase error:", error);
+    res.status(500).send({ code: 500, message: "Error del servidor", error: error.message });
+  } else if (!data) {
+    res.status(404).send({ code: 404, message: "Error al crear experiencia" });
+  } else {
+    res.status(200).send({ code: 200, experience: data });
+  }
+}
+
+async function deleteExperience(req, res) {
+  const id = req.params.id;
+
+  const { error } = await supabase.from("experiences").delete().eq("id", id);
+
+  if (error) {
+    res.status(500).send({ code: 500, message: error.message });
+  } else {
+    res.status(200).send({ code: 200, message: "Mensaje borrado" });
+  }
+}
+
+async function updateExperience(req, res) {
+  const id = req.params.id;
+  const { job, city, country, startDate, finishDate, description, company, tags, published } = req.body;
 
   if (!job || !city || !description || !company || !tags) {
     res.status(403).send({
       code: 403,
       message: "Por favor, introduce todos los valores necesarios",
     });
+    return;
+  }
+
+  const updatedData = {
+    job,
+    city,
+    country,
+    startdate: startDate,
+    finishdate: finishDate,
+    description,
+    company,
+    tags,
+    published,
+  };
+
+  const { data, error } = await supabase.from("experiences").update(updatedData).eq("id", id).select().single();
+
+  if (error) {
+    res.status(500).send({ code: 500, message: error.message });
+  } else if (!data) {
+    res.status(404).send({ code: 404, message: "Algo salió mal" });
   } else {
-    Experience.findByIdAndUpdate(id, updatedData, { new: true }, (err, updatedExperience) => {
-      if (err) {
-        res.status(500).send({ code: 500, message: err.message });
-      } else if (!updatedExperience) {
-        res.status(404).send({ code: 404, message: "Algo salió mal" });
-      } else {
-        res.status(200).send({ code: 200, message: "Registro actualizado" });
-      }
-    });
+    res.status(200).send({ code: 200, message: "Registro actualizado" });
   }
 }
 

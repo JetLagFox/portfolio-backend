@@ -7,7 +7,7 @@ function getCurrentDate() {
   const hours = postDate.getHours() <= 9 ? "0" + postDate.getHours() : postDate.getHours();
   const minutes = postDate.getMinutes() <= 9 ? "0" + postDate.getMinutes() : postDate.getMinutes();
 
-  return postDate.getFullYear + "-" + month + "-" + day + " " + hours + ":" + minutes + ":" + "00:00";
+  return postDate.getFullYear() + "-" + month + "-" + day + " " + hours + ":" + minutes + ":00";
 }
 
 module.exports = {
